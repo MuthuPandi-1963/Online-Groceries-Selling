@@ -1,0 +1,245 @@
+{% extends 'shop/base.html' %}
+{% load shop_filters %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Shopping Cart</h5>
+                        <span class="badge bg-primary">{{ cart.items.count }} Items</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if cart.items.exists %}
+                        {% for farmer, data in items_by_farmer.items %}
+                            <div class="farmer-section mb-4">
+                                <h6 class="text-muted mb-3">
+                                    <i class="fas fa-store me-2"></i>{{ farmer.username }}'s Products
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Unit Price</th>
+                                                <th>Quantity</th>
+                                                <th class="text-end">Total</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in data.items %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        {% if item.product.image %}
+                                                        <img src="{{ item.product.image.url }}" 
+                                                             alt="{{ item.product.name }}"
+                                                             class="img-thumbnail me-3" 
+                                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                                        {% endif %}
+                                                        <div>
+                                                            <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                            <small class="text-muted">
+                                                                {{ item.product.get_unit_display }}
+                                                            </small>
+                                                            {% if item.product.stock_quantity < item.quantity %}
+                                                            <div class="text-danger">
+                                                                <small>
+                                                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                                                    Only {{ item.product.stock_display }} available
+                                                                </small>
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>₹{{ item.price_at_time|floatformat:2 }}</td>
+                                                <td style="width: 150px;">
+                                                    <div class="input-group">
+                                                        <button type="button" 
+                                                                class="btn btn-outline-secondary btn-sm update-quantity" 
+                                                                data-action="decrease" 
+                                                                data-item-id="{{ item.id }}">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" 
+                                                               class="form-control form-control-sm text-center quantity-input" 
+                                                               value="{{ item.quantity }}" 
+                                                               min="1" 
+                                                               max="{{ item.product.stock_quantity }}"
+                                                               data-item-id="{{ item.id }}">
+                                                        <button type="button" 
+                                                                class="btn btn-outline-secondary btn-sm update-quantity" 
+                                                                data-action="increase" 
+                                                                data-item-id="{{ item.id }}">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end">₹{{ item.price_at_time|multiply:item.quantity|floatformat:2 }}</td>
+                                                <td class="text-end">
+                                                    <button type="button" 
+                                                            class="btn btn-outline-danger btn-sm remove-item"
+                                                            data-item-id="{{ item.id }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                            <tr class="table-light">
+                                                <td colspan="3" class="text-end">
+                                                    <strong>Subtotal from {{ farmer.username }}</strong>
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong>₹{{ data.subtotal|floatformat:2 }}</strong>
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <h3>Your Cart is Empty</h3>
+                            <p class="text-muted">Start adding some fresh products to your cart!</p>
+                            <a href="{% url 'product-list' %}" class="btn btn-primary">
+                                <i class="fas fa-shopping-basket me-2"></i>Browse Products
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            {% if cart.items.exists %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <span>₹{{ total|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery Fee</span>
+                        <span>₹{{ delivery_fee|floatformat:2 }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total</strong>
+                        <strong>₹{{ total_with_delivery|floatformat:2 }}</strong>
+                    </div>
+                    <a href="{% url 'checkout' %}" class="btn btn-primary w-100">
+                        <i class="fas fa-lock me-2"></i>Proceed to Checkout
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Update quantity when buttons are clicked
+    $('.update-quantity').click(function() {
+        var input = $(this).closest('.input-group').find('.quantity-input');
+        var currentValue = parseInt(input.val());
+        var action = $(this).data('action');
+        var maxValue = parseInt(input.attr('max'));
+        
+        if (action === 'increase' && currentValue < maxValue) {
+            input.val(currentValue + 1).trigger('change');
+        } else if (action === 'decrease' && currentValue > 1) {
+            input.val(currentValue - 1).trigger('change');
+        }
+    });
+
+    // Handle quantity input changes
+    $('.quantity-input').change(function() {
+        var itemId = $(this).data('item-id');
+        var quantity = parseInt($(this).val());
+        updateCartItem(itemId, quantity);
+    });
+
+    // Handle remove item button
+    $('.remove-item').click(function() {
+        var itemId = $(this).data('item-id');
+        var button = $(this);
+        
+        $.ajax({
+            url: `/cart/remove/${itemId}/`,
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Remove the entire row
+                    button.closest('tr').fadeOut(300, function() {
+                        $(this).remove();
+                        // If no more items, reload the page to show empty cart
+                        if ($('tbody tr').length === 0) {
+                            location.reload();
+                        }
+                    });
+                }
+            },
+            error: function() {
+                alert('Failed to remove item. Please try again.');
+            }
+        });
+    });
+
+    function updateCartItem(itemId, quantity) {
+        $.ajax({
+            url: `/cart/update/${itemId}/`,
+            method: 'POST',
+            data: {
+                'quantity': quantity
+            },
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload(); // Refresh to update all totals
+                } else {
+                    alert(response.message || 'Failed to update quantity');
+                }
+            },
+            error: function() {
+                alert('Failed to update quantity. Please try again.');
+            }
+        });
+    }
+
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock extra_js %}

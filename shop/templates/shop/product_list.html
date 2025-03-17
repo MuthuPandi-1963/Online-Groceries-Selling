@@ -1,0 +1,323 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            {% if user.is_farmer %}
+                <i class="fas fa-store me-2" style="color: var(--primary-color);"></i>My Products
+            {% else %}
+                <i class="fas fa-shopping-basket me-2" style="color: var(--primary-color);"></i>Available Products
+            {% endif %}
+        </h1>
+        {% if user.is_farmer %}
+            <a href="{% url 'product-create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Add New Product
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <!-- Category Filter -->
+            <div class="btn-group mb-3">
+                <a href="{% url 'product-list' %}{% if search_query %}?q={{ search_query }}{% endif %}" 
+                   class="btn {% if not selected_category %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    All Categories
+                </a>
+                {% for category in categories %}
+                    <a href="{% url 'product-list' %}?category={{ category.slug }}{% if search_query %}&q={{ search_query }}{% endif %}" 
+                       class="btn {% if selected_category == category.slug %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        {{ category.name }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <!-- Search Form -->
+            <form method="get" class="mb-3">
+                {% if selected_category %}
+                    <input type="hidden" name="category" value="{{ selected_category }}">
+                {% endif %}
+                <div class="input-group">
+                    <input type="text" 
+                           name="q" 
+                           class="form-control" 
+                           placeholder="Search products..." 
+                           value="{{ search_query|default:'' }}"
+                           aria-label="Search products">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="row g-4">
+        {% for product in products %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm product-card">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" 
+                             class="card-img-top" 
+                             alt="{{ product.name }}"
+                             style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-light text-center py-5">
+                            <i class="fas fa-image fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Stock Status Badge -->
+                    <div class="position-absolute top-0 end-0 m-3">
+                        {% if product.stock_status == 'in_stock' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>In Stock
+                            </span>
+                        {% elif product.stock_status == 'low_stock' %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-exclamation-circle me-1"></i>Low Stock
+                            </span>
+                        {% elif product.stock_status == 'out_of_stock' %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times-circle me-1"></i>Out of Stock
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-ban me-1"></i>Unavailable
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="card-title mb-1">{{ product.name }}</h5>
+                                <p class="text-muted small mb-0">
+                                    <i class="fas fa-folder me-1"></i>{{ product.category.name }}
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <h5 class="mb-0 text-primary">{{ product.formatted_price }}</h5>
+                                <small class="text-muted">
+                                    Min: {{ product.min_order_display }}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text text-muted mb-3">{{ product.description|truncatechars:100 }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="text-muted small">
+                                <i class="fas fa-box me-1"></i>{{ product.stock_display }} available
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-user me-1"></i>{{ product.farmer.get_full_name }}
+                            </div>
+                        </div>
+
+                        {% if not user.is_farmer and product.is_available and product.stock_quantity > 0 %}
+                            <form action="{% url 'add-to-cart' product.id %}" 
+                                  method="post" 
+                                  class="add-to-cart-form"
+                                  data-product-id="{{ product.id }}">
+                                {% csrf_token %}
+                                <div class="input-group mb-3">
+                                    <input type="number" 
+                                           name="quantity" 
+                                           class="form-control" 
+                                           value="{{ product.min_quantity }}"
+                                           min="{{ product.min_quantity }}"
+                                           max="{{ product.stock_quantity }}"
+                                           step="0.01">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-cart-plus me-1"></i>Add to Cart
+                                    </button>
+                                </div>
+                            </form>
+                        {% endif %}
+
+                        {% if user.is_farmer and product.farmer == user %}
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'product-update' product.pk %}" 
+                                   class="btn btn-outline-primary flex-grow-1">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </a>
+                                <a href="{% url 'product-delete' product.pk %}" 
+                                   class="btn btn-outline-danger flex-grow-1">
+                                    <i class="fas fa-trash-alt me-1"></i>Delete
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-box-open fa-3x mb-3 text-muted"></i>
+                <h4>No Products Found</h4>
+                {% if search_query or selected_category %}
+                    <p class="text-muted">
+                        No products match your search criteria. 
+                        <a href="{% url 'product-list' %}" class="text-decoration-none">Clear filters</a>
+                    </p>
+                {% elif user.is_farmer %}
+                    <p class="text-muted">Start adding your products to showcase them to customers.</p>
+                    <a href="{% url 'product-create' %}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus-circle me-2"></i>Add Your First Product
+                    </a>
+                {% else %}
+                    <p class="text-muted">Check back later for available products.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Handle add to cart form submission
+    $('.add-to-cart-form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const submitBtn = form.find('button[type="submit"]');
+        const originalBtnHtml = submitBtn.html();
+        
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Adding...');
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.status === 'success') {
+                    submitBtn.removeClass('btn-primary').addClass('btn-success')
+                            .html('<i class="fas fa-check me-1"></i>Added!');
+                    setTimeout(() => {
+                        submitBtn.removeClass('btn-success').addClass('btn-primary')
+                                .html(originalBtnHtml).prop('disabled', false);
+                    }, 2000);
+                } else {
+                    submitBtn.removeClass('btn-primary').addClass('btn-danger')
+                            .html('<i class="fas fa-times me-1"></i>Failed');
+                    setTimeout(() => {
+                        submitBtn.removeClass('btn-danger').addClass('btn-primary')
+                                .html(originalBtnHtml).prop('disabled', false);
+                    }, 2000);
+                }
+            },
+            error: function() {
+                submitBtn.removeClass('btn-primary').addClass('btn-danger')
+                        .html('<i class="fas fa-times me-1"></i>Error');
+                setTimeout(() => {
+                    submitBtn.removeClass('btn-danger').addClass('btn-primary')
+                            .html(originalBtnHtml).prop('disabled', false);
+                }, 2000);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
+<style>
+.product-card {
+    border-radius: 15px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+
+.card-img-top {
+    border-radius: 15px 15px 0 0;
+}
+
+.btn-group .btn {
+    border-radius: 8px;
+    margin: 0 2px;
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+</style>
+{% endblock %}

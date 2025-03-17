@@ -1,0 +1,130 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-6">
+            {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-fluid rounded">
+            {% else %}
+            <div class="bg-light rounded p-5 text-center">
+                <i class="fas fa-image fa-3x text-muted"></i>
+                <p class="text-muted mt-2">No image available</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            <h1 class="mb-3">{{ product.name }}</h1>
+            <p class="text-muted">
+                <span class="badge bg-secondary">{{ product.category.name }}</span>
+                <span class="ms-2">by {{ product.farmer.get_full_name|default:product.farmer.username }}</span>
+            </p>
+            
+            <div class="mb-3">
+                <h3 class="text-primary mb-0">₹{{ product.base_price|floatformat:2 }}</h3>
+                <p class="text-muted">per {{ product.get_unit_display }}</p>
+            </div>
+            
+            <div class="mb-4">
+                <h5>Description</h5>
+                <p>{{ product.description }}</p>
+            </div>
+            
+            {% if product.is_available and product.stock_quantity > 0 %}
+                <form action="{% url 'add-to-cart' product.id %}" method="post" class="mb-4" id="add-to-cart-form">
+                    {% csrf_token %}
+                    <div class="d-flex align-items-center mb-3">
+                        <label for="quantity" class="me-3">Quantity:</label>
+                        <div class="input-group" style="max-width: 180px;">
+                            <button type="button" class="btn btn-outline-secondary btn-decrease" data-min="{{ product.min_quantity }}">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" name="quantity" id="quantity" class="form-control text-center" 
+                                   value="{{ product.min_quantity|floatformat:'0' }}" 
+                                   min="{{ product.min_quantity }}" 
+                                   max="{{ product.stock_quantity }}"
+                                   step="1">
+                            <button type="button" class="btn btn-outline-secondary btn-increase" data-max="{{ product.stock_quantity }}">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-cart-plus me-2"></i>Add to Cart
+                    </button>
+                </form>
+                <p class="text-muted small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Minimum order: {{ product.min_quantity }} {{ product.get_unit_display }} | 
+                    Available: {{ product.stock_quantity }} {{ product.get_unit_display }}
+                </p>
+            {% else %}
+                <div class="alert alert-secondary">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    {% if not product.is_available %}
+                        This product is currently unavailable.
+                    {% else %}
+                        This product is out of stock.
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const form = $('#add-to-cart-form');
+    const quantityInput = form.find('#quantity');
+    const basePrice = parseFloat('{{ product.base_price }}');
+    
+    // Handle decrease button click
+    $('.btn-decrease').click(function() {
+        const min = parseInt($(this).data('min'));
+        let value = parseInt(quantityInput.val());
+        
+        if (value > min) {
+            value--;
+            quantityInput.val(value);
+            updateTotalPrice(value);
+        }
+    });
+    
+    // Handle increase button click
+    $('.btn-increase').click(function() {
+        const max = parseInt($(this).data('max'));
+        let value = parseInt(quantityInput.val());
+        
+        if (value < max) {
+            value++;
+            quantityInput.val(value);
+            updateTotalPrice(value);
+        }
+    });
+    
+    // Handle direct input changes
+    quantityInput.change(function() {
+        const min = parseInt($(this).attr('min'));
+        const max = parseInt($(this).attr('max'));
+        let value = parseInt($(this).val());
+        
+        if (isNaN(value) || value < min) {
+            value = min;
+            $(this).val(min);
+        } else if (value > max) {
+            value = max;
+            $(this).val(max);
+        }
+        
+        updateTotalPrice(value);
+    });
+    
+    function updateTotalPrice(quantity) {
+        const total = (basePrice * quantity).toFixed(2);
+        $('.total-price').text('₹' + total);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

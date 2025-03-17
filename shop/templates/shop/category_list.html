@@ -1,0 +1,120 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-th-large me-2" style="color: var(--primary-color);"></i>Product Categories
+            </h1>
+        </div>
+        {% if user.is_farmer %}
+        <div class="col text-end">
+            <a href="{% url 'product-create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add New Product
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        {% for category in categories %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm category-card">
+                <div class="category-image-container">
+                    {% if category.image %}
+                        <img src="{{ category.image.url }}" class="card-img-top category-image" alt="{{ category.name }}">
+                    {% else %}
+                        <div class="category-image-placeholder">
+                            <i class="fas fa-seedling fa-3x"></i>
+                        </div>
+                    {% endif %}
+                    <div class="category-overlay">
+                        <span class="product-count">
+                            {{ category.products.count }} Products
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title mb-2">{{ category.name }}</h5>
+                    <p class="card-text text-muted">{{ category.description }}</p>
+                </div>
+                <div class="card-footer bg-white border-0">
+                    <a href="{% url 'product-list' %}?category={{ category.slug }}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-eye me-2"></i>View Products
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.category-card {
+    border-radius: 15px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+.category-image-container {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.category-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.category-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    color: var(--primary-color);
+}
+
+.category-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    color: white;
+}
+
+.product-count {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.card-title {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.btn-outline-primary {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

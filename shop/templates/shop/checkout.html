@@ -1,0 +1,118 @@
+{% extends 'shop/base.html' %}
+{% load shop_filters %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Checkout</h2>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Shipping Information</h5>
+                    <form method="post" id="checkout-form">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ field.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="place-order-btn">
+                                <i class="fas fa-lock me-2"></i>Place Order
+                            </button>
+                            <a href="{% url 'cart' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Cart
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Order Summary</h5>
+                    
+                    {% regroup cart_items by product.farmer as farmer_items %}
+                    {% for farmer in farmer_items %}
+                        <div class="farmer-section mb-4">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-store me-2"></i>{{ farmer.grouper.get_full_name }}
+                            </h6>
+                            
+                            {% for item in farmer.list %}
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h6 class="mb-0">{{ item.product.name }}</h6>
+                                        <small class="text-muted">
+                                            {{ item.quantity }} {{ item.product.get_unit_display }} × ₹{{ item.price_at_time|floatformat:2 }}
+                                        </small>
+                                        {% if item.product.stock_quantity < item.quantity %}
+                                            <div class="text-danger">
+                                                <small>
+                                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                                    Only {{ item.product.stock_display }} available
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>₹{{ item.total_price|floatformat:2 }}</div>
+                                </div>
+                            {% endfor %}
+                            
+                            <div class="d-flex justify-content-between mb-2 text-muted">
+                                <small>Subtotal from {{ farmer.grouper.get_full_name }}</small>
+                                <small>₹{{ farmer.list|total_price|floatformat:2 }}</small>
+                            </div>
+                        </div>
+                        {% if not forloop.last %}<hr class="my-3">{% endif %}
+                    {% endfor %}
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <strong>₹{{ cart.total_price|floatformat:2 }}</strong>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Delivery Fee</span>
+                        <strong>₹50.00</strong>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <strong>Total</strong>
+                        <strong>₹{{ cart.total_with_delivery|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Disable form resubmission
+    $('#checkout-form').on('submit', function() {
+        $('#place-order-btn').prop('disabled', true);
+        $('#place-order-btn').html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

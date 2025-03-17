@@ -1,0 +1,149 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Order #{{ order.id }}</h2>
+        <a href="{% url 'order-list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Orders
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">Order Items</h5>
+                        </div>
+                        <span class="badge {% if order.status == 'delivered' %}bg-success
+                                      {% elif order.status == 'cancelled' or order.status == 'customer_cancelled' %}bg-danger
+                                      {% elif order.status == 'partially_delivered' %}bg-warning
+                                      {% elif order.status == 'out_for_delivery' %}bg-info
+                                      {% elif order.status == 'packaging' %}bg-primary
+                                      {% else %}bg-secondary{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Farmer</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items.all %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.product.image %}
+                                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" 
+                                                 class="img-thumbnail me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                <small class="text-muted">{{ item.product.get_unit_display }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.farmer.username }}</td>
+                                    <td>₹{{ item.unit_price|floatformat:2 }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="text-end">₹{{ item.total_price|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Subtotal</strong></td>
+                                    <td class="text-end">₹{{ order.subtotal|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end">Shipping</td>
+                                    <td class="text-end">₹{{ order.shipping_fee|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end">Tax (5%)</td>
+                                    <td class="text-end">₹{{ order.tax|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Total</strong></td>
+                                    <td class="text-end"><strong>₹{{ order.total|floatformat:2 }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Order Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Order Date:</strong><br>
+                        {{ order.created_at|date:"M d, Y H:i" }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Last Updated:</strong><br>
+                        {{ order.last_status_update|date:"M d, Y H:i" }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Payment Status:</strong><br>
+                        <span class="badge {% if order.is_paid %}bg-success{% else %}bg-warning{% endif %}">
+                            {% if order.is_paid %}Paid{% else %}Pending{% endif %}
+                        </span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>Shipping Address:</strong><br>
+                        {{ order.shipping_address|linebreaks }}
+                    </p>
+                    {% if order.notes %}
+                    <p class="mb-2">
+                        <strong>Order Notes:</strong><br>
+                        {{ order.notes|linebreaks }}
+                    </p>
+                    {% endif %}
+                    {% if order.cancellation_reason %}
+                    <p class="mb-0">
+                        <strong>Cancellation Reason:</strong><br>
+                        {{ order.cancellation_reason|linebreaks }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if order.can_cancel %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'cancel-order' order.id %}" class="d-grid gap-2">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Cancellation Reason</label>
+                            <textarea name="reason" id="reason" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-times me-2"></i>Cancel Order
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

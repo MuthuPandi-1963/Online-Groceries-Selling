@@ -1,0 +1,215 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            {% if user.is_farmer %}
+                <i class="fas fa-box me-2" style="color: var(--primary-color);"></i>Orders to Fulfill
+            {% else %}
+                <i class="fas fa-shopping-bag me-2" style="color: var(--primary-color);"></i>My Orders
+            {% endif %}
+        </h2>
+        
+        {% if user.is_farmer %}
+            <div class="btn-group">
+                <a href="?status=pending" class="btn {% if status == 'pending' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-clock me-1"></i>Pending
+                </a>
+                <a href="?status=processing" class="btn {% if status == 'processing' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-truck me-1"></i>Processing
+                </a>
+                <a href="?status=delivered" class="btn {% if status == 'delivered' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-check-circle me-1"></i>Delivered
+                </a>
+                <a href="?status=cancelled" class="btn {% if status == 'cancelled' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-times-circle me-1"></i>Cancelled
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if orders %}
+        <div class="row g-4">
+            {% for order in orders %}
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <h5 class="mb-1">#{{ order.id }}</h5>
+                                    <small class="text-muted">{{ order.created_at|date:"M d, Y" }}</small>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        {% if user.is_farmer %}
+                                            <div class="me-3">
+                                                <img src="{{ order.customer.profile_image.url|default:'/static/images/default-avatar.png' }}" 
+                                                     class="rounded-circle" 
+                                                     alt="{{ order.customer.get_full_name }}"
+                                                     width="40" height="40">
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">{{ order.customer.get_full_name }}</h6>
+                                                <small class="text-muted">{{ order.shipping_address|truncatechars:30 }}</small>
+                                            </div>
+                                        {% else %}
+                                            <div>
+                                                <h6 class="mb-0">{{ order.items.count }} items</h6>
+                                                <small class="text-muted">
+                                                    From {{ order.items.count }} farmer{{ order.items.count|pluralize }}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-2 text-md-center">
+                                    <h6 class="mb-0">₹{{ order.total|floatformat:2 }}</h6>
+                                    <small class="text-muted">Total Amount</small>
+                                </div>
+                                
+                                <div class="col-md-2 text-md-center">
+                                    <span class="badge {% if order.status == 'delivered' %}bg-success
+                                                  {% elif order.status == 'cancelled' %}bg-danger
+                                                  {% elif order.status == 'processing' %}bg-primary
+                                                  {% else %}bg-warning{% endif %} px-3 py-2">
+                                        <i class="fas {% if order.status == 'delivered' %}fa-check-circle
+                                                   {% elif order.status == 'cancelled' %}fa-times-circle
+                                                   {% elif order.status == 'processing' %}fa-truck
+                                                   {% else %}fa-clock{% endif %} me-1"></i>
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </div>
+                                
+                                <div class="col-md-2 text-md-end">
+                                    <a href="{% url 'order-detail' order.id %}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            {% if order.cancellation_reason %}
+                                <div class="alert alert-danger mt-3 mb-0 py-2">
+                                    <small>
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Cancellation Reason: {{ order.cancellation_reason }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if status %}&status={{ status }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status %}&status={{ status }}{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+            <h3>No orders found</h3>
+            {% if user.is_farmer %}
+                {% if status %}
+                    <p class="text-muted">No {{ status }} orders at the moment.</p>
+                {% else %}
+                    <p class="text-muted">You haven't received any orders yet.</p>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">You haven't placed any orders yet.</p>
+                <a href="{% url 'product-list' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-shopping-basket me-2"></i>Start Shopping
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.badge {
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.card {
+    border-radius: 15px;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.btn-group .btn {
+    border-radius: 8px;
+    margin: 0 2px;
+}
+
+.pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+</style>
+{% endblock %}

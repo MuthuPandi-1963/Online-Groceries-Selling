@@ -1,0 +1,62 @@
+[
+    {
+        "model": "shop.category",
+        "pk": 1,
+        "fields": {
+            "name": "Vegetables",
+            "description": "Fresh vegetables directly from farmers",
+            "slug": "vegetables",
+            "image": "categories/vegetables.jpg",
+            "created_at": "2025-03-15T04:00:00Z",
+            "updated_at": "2025-03-15T04:00:00Z"
+        }
+    },
+    {
+        "model": "shop.category",
+        "pk": 2,
+        "fields": {
+            "name": "Fruits",
+            "description": "Fresh seasonal and exotic fruits",
+            "slug": "fruits",
+            "image": "categories/fruits.jpg",
+            "created_at": "2025-03-15T04:00:00Z",
+            "updated_at": "2025-03-15T04:00:00Z"
+        }
+    },
+    {
+        "model": "shop.category",
+        "pk": 3,
+        "fields": {
+            "name": "Grains",
+            "description": "High-quality grains and pulses",
+            "slug": "grains",
+            "image": "categories/grains.jpg",
+            "created_at": "2025-03-15T04:00:00Z",
+            "updated_at": "2025-03-15T04:00:00Z"
+        }
+    },
+    {
+        "model": "shop.category",
+        "pk": 4,
+        "fields": {
+            "name": "Dairy",
+            "description": "Fresh dairy products from local farms",
+            "slug": "dairy",
+            "image": "categories/dairy.jpg",
+            "created_at": "2025-03-15T04:00:00Z",
+            "updated_at": "2025-03-15T04:00:00Z"
+        }
+    },
+    {
+        "model": "shop.category",
+        "pk": 5,
+        "fields": {
+            "name": "Herbs & Spices",
+            "description": "Fresh and dried herbs and spices",
+            "slug": "herbs-spices",
+            "image": "categories/herbs-spices.jpg",
+            "created_at": "2025-03-15T04:00:00Z",
+            "updated_at": "2025-03-15T04:00:00Z"
+        }
+    }
+]

@@ -1,0 +1,168 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Manage Orders</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">New Orders</h6>
+                    <h2 class="mb-0">{{ pending_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Processing</h6>
+                    <h2 class="mb-0">{{ processing_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Delivered</h6>
+                    <h2 class="mb-0">{{ delivered_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Cancelled</h6>
+                    <h2 class="mb-0">{{ cancelled_count }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Orders</h5>
+                <div class="btn-group">
+                    <a href="?status=pending" class="btn btn-outline-primary {% if request.GET.status == 'pending' %}active{% endif %}">New</a>
+                    <a href="?status=processing" class="btn btn-outline-primary {% if request.GET.status == 'processing' %}active{% endif %}">Processing</a>
+                    <a href="?status=delivered" class="btn btn-outline-primary {% if request.GET.status == 'delivered' %}active{% endif %}">Delivered</a>
+                    <a href="?status=cancelled" class="btn btn-outline-primary {% if request.GET.status == 'cancelled' %}active{% endif %}">Cancelled</a>
+                    <a href="?" class="btn btn-outline-primary {% if not request.GET.status %}active{% endif %}">All</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'farmer-order-detail' order.id %}" class="text-decoration-none">
+                                    #{{ order.id|truncatechars:8 }}
+                                </a>
+                            </td>
+                            <td>{{ order.user.username }}</td>
+                            <td>{{ order.items.count }}</td>
+                            <td>₹{{ order.total|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge {% if order.status == 'delivered' %}bg-success
+                                              {% elif order.status == 'cancelled' or order.status == 'customer_cancelled' %}bg-danger
+                                              {% elif order.status == 'partially_delivered' %}bg-warning
+                                              {% elif order.status == 'out_for_delivery' %}bg-info
+                                              {% elif order.status == 'packaging' %}bg-primary
+                                              {% else %}bg-secondary{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'farmer-order-detail' order.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if order.status == 'pending' %}
+                                    <form method="post" action="{% url 'update-order-status' order.id %}" 
+                                          class="d-inline" onsubmit="return confirm('Are you sure you want to accept this order?')">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="status" value="accepted">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    {% if order.can_cancel %}
+                                    <a href="{% url 'farmer-order-detail' order.id %}#cancel" 
+                                       class="btn btn-sm btn-danger">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h3>No Orders Found</h3>
+                <p class="text-muted">There are no orders matching your criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
