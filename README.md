@@ -36,7 +36,7 @@ A Django-based e-commerce platform connecting farmers directly with customers, e
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/Farmer-app.git
+git clone https://github.com/MuthuPandi-1963/Online-Groceries-Selling.git
 cd Farmer-app
 ```
 
